@@ -8,7 +8,7 @@ class LocationDetails extends Component {
     render() {
         return (
             <View>
-                <PrimaryLocation />
+                <Text>Same as primary location</Text>
                 <Text>Expandable data for next 7 days</Text>
             </View>
         );

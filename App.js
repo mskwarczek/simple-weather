@@ -19,9 +19,9 @@ const AppNavigator = createStackNavigator({ //TODO: maybe move to separate file
     initialRouteName: 'Home',
     defaultNavigationOptions: { //TODO: add styles
         headerStyle: {
-            backgroundColor: '#888',
+            backgroundColor: '#4CAF50',
         },
-        headerTintColor: '#fff',
+        headerTintColor: '#212121',
         headerTitleStyle: {
             fontWeight: 'bold',
         },
@@ -29,7 +29,7 @@ const AppNavigator = createStackNavigator({ //TODO: maybe move to separate file
             <Button
                 onPress={() => alert('This is a button!')}
                 title='Info'
-                color="#000"
+                color='#448AFF'
             />
         ),
     },

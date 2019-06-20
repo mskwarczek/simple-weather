@@ -11,7 +11,7 @@ server.use(express.urlencoded({ extended: true }));
 server.get('/api/forecast', (req, res) => {
     console.log('incoming request!'); // dev
     console.log(req.query); // dev
-    fetch(`https://api.darksky.net/forecast/${DARKSKYAPIKEY}/${req.query.lat},${req.query.lon}?lang=${req.query.lang}&units=auto`)
+    fetch(`https://api.darksky.net/forecast/${DARKSKYAPIKEY}/${req.query.lat},${req.query.lon}?lang=${req.query.lang}&units=si`)
         .then(data => data.json())
         .then(data => {
             console.log(data); // dev

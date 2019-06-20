@@ -1,24 +1,31 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, TouchableHighlight } from 'react-native';
+import { StyleSheet, View, TouchableHighlight } from 'react-native';
+
+import { P, H1, H2, H3 } from '../../common/components';
 
 class SecondaryLocation extends Component {
 
     render() {
         return (
-            <TouchableHighlight style={this.props.style} onPress={this.props.showDetails}>
+            <TouchableHighlight style={styles.container} onPress={this.props.showDetails}>
                 <View>
-                    <Text>city</Text>
-                    <Text>currentSummary</Text>
-                    <View style={{ flexDirection: 'row' }}>
+                    <H1>city</H1>
+                    <H2>currentSummary</H2>
+                    <View style={styles.row}>
                         <View>
-                            <Text>icon</Text>
+                            <P>icon</P>
                         </View>
                         <View>
-                            <Text>temperature</Text>
+                            <H2>temperature</H2>
                         </View>
                     </View>
-                    <View>
-                        <Text>minutely summary OR hourly summary</Text>
+                    <View style={styles.row}>
+                        <View>
+                            <P>icon</P>
+                        </View>
+                        <View>
+                            <H3>hourly summary</H3>
+                        </View>
                     </View>
                 </View>
             </TouchableHighlight>
@@ -27,7 +34,17 @@ class SecondaryLocation extends Component {
 };
 
 const styles = StyleSheet.create({ //TODO: add styles
-
+    container: {
+        flex: 1,
+        backgroundColor: '#C8E6C9',
+        borderBottomColor: '#BDBDBD',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderRightColor: '#BDBDBD',
+        borderRightWidth: StyleSheet.hairlineWidth,
+    },
+    row: {
+        flexDirection: 'row',
+    },
 });
 
 export default SecondaryLocation;

@@ -5,7 +5,7 @@ class Footer extends Component {
 
     render() {
         return (
-            <View style={this.props.style}>
+            <View style={styles.container}>
                 <Text>Footer component</Text>
             </View>
         );
@@ -13,7 +13,11 @@ class Footer extends Component {
 };
 
 const styles = StyleSheet.create({ //TODO: add styles
-
+    container: {
+        flex: 1,
+        width: '100%',
+        backgroundColor: '#4CAF50',
+    },
 });
 
 export default Footer;
