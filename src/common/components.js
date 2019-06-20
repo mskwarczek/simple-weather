@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { Text } from 'react-native';
+import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 
 export class P extends Component {
     render() {
@@ -57,5 +58,30 @@ export class H3 extends Component {
                 </Text>
             </P>
         );
+    };
+};
+
+export class Icon extends Component {
+    render() {
+        const { category, name, color } = this.props.icon;
+        if (category === 'Feather') {
+            return (
+                <Feather name={name}
+                    size={this.props.size}
+                    color={color} />
+            );
+        } else if (category === 'Ionicons')
+            return (
+                <Ionicons name={name}
+                    size={this.props.size}
+                    color={color} />
+            );
+        else {
+            return (
+                <MaterialCommunityIcons name={name}
+                    size={this.props.size}
+                    color={color} />
+            );
+        };
     };
 };

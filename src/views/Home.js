@@ -68,7 +68,7 @@ class Home extends Component {
         return firstPart + secondPart;
     };
 
-    // Get forecast data from the server and save it to state.savedLocations
+    // Get forecast data from the server and save it to state.savedLocations.
     getForecastData = async(location) => {
         const { id, city, lat, lon } = location;
         let newLocation = await fetch(`http://10.0.0.5:5000/api/forecast?lat=${lat}&lon=${lon}&lang=pl`)
@@ -81,6 +81,27 @@ class Home extends Component {
                 return { err: `Unable to fetch data from server. ${err}`, data: null };
             });
         return newLocation;
+    };
+
+    // Assign icon from avalievable icon sets depending on weather forecast data.
+    assignIcon = (icon) => {
+        const warm = '#FF9800';
+        const wet = '#448AFF';
+        const cold = '#FFF';
+        const dark = '#000';
+        switch(icon) {
+            case 'clear-day': return { name: 'weather-sunny', category: 'MaterialCommunityIcons', color: warm };
+            case 'clear-night': return { name: 'weather-night', category: 'MaterialCommunityIcons', color: warm };
+            case 'rain': return { name: 'weather-rainy', category: 'MaterialCommunityIcons', color: wet };
+            case 'snow': return { name: 'weather-snowy', category: 'MaterialCommunityIcons', color: cold };
+            case 'sleet': return { name: 'weather-snowy-rainy', category: 'MaterialCommunityIcons', color: wet };
+            case 'wind': return { name: 'wind', category: 'Feather', color: wet };
+            case 'fog': return { name: 'weather-fog', category: 'MaterialCommunityIcons', color: wet };
+            case 'cloudy': return { name: 'weather-cloudy', category: 'MaterialCommunityIcons', color: wet };
+            case 'partly-cloudy-day': return { name: 'weather-partlycloudy', category: 'MaterialCommunityIcons', color: wet };
+            case 'partly-cloudy-night': return { name: 'md-cloudy-night', category: 'Ionicons', color: dark };
+            default: return { name: 'weather-partlycloudy', category: 'MaterialCommunityIcons', color: wet };;
+        };
     };
 
     componentDidMount = async () => {
@@ -132,6 +153,7 @@ class Home extends Component {
                 <PrimaryLocation 
                     showDetails={() => this.props.navigation.navigate('LocationDetails')}
                     weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
+                    assignIcon={this.assignIcon}
                 />
                 <View style={{ flex: 3, flexDirection: 'row' }}>
                     <SecondaryLocation />
@@ -146,9 +168,6 @@ class Home extends Component {
 const styles = StyleSheet.create({ //TODO: add styles
     container: {
         flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 });
 
