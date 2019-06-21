@@ -30,9 +30,6 @@ class PrimaryLocation extends Component {
                             <H3>{hourly.summary}</H3>
                         </View>
                     </View>
-                    <View style={styles.box}>
-                        <P>hourly chart {/*TODO */}</P>
-                    </View>
                 </View>
             </TouchableHighlight>
         );
@@ -68,9 +65,8 @@ const styles = StyleSheet.create({ //TODO: add styles
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 2,
+        paddingBottom: 2,
     },
 });
-
 
 export default PrimaryLocation;

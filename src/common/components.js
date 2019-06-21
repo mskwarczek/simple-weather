@@ -8,6 +8,7 @@ export class P extends Component {
             <Text style={{
                 fontSize: 14,
                 color: '#444',
+                textAlign: 'center',
             }}>
                 {this.props.children}
             </Text>
@@ -23,7 +24,6 @@ export class H1 extends Component {
                     fontSize: 20,
                     color: '#212121',
                     fontWeight: 'bold',
-                    textAlign: 'center',
                 }}>
                     {this.props.children}
                 </Text>

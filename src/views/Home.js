@@ -12,6 +12,7 @@ class Home extends Component {
     state = {
         isLoading: true,
         geolocation: true, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
+        secondaryLocationsDisplayed: 2,
         userPrimaryLocation: {}, // { id, city, lat, lon } -- simplified data of location set by user as primary location
         userSecondaryLocations: [], // [ { id, city, lat, lon } ] -- simplified data of locations set by user as secondary locations
         savedLocations: [], // [ { ...recievedData, id, city } ] -- all data saved during session with added IDs and city names
@@ -105,10 +106,12 @@ class Home extends Component {
     };
 
     componentDidMount = async () => {
-        // GET DATA FOR PRIMARY LOCATION
+        // Get primary location data
         //TODO: Setup event listeners for AppState change
+        let primaryLocationData;
+        let secondaryLocationsData = new Array(this.state.secondaryLocationsDisplayed);
         if (!this.state.geolocation) {
-            //TODO: get data from AsyncStorage and rungenerateId(), getForecastData({ ...userPrimaryLocation, id });
+            //TODO: get data from AsyncStorage and run generateId(), getForecastData({ ...userPrimaryLocation, id });
             //TODO: If there is no such data, ask user to provide it or turn geolocation on
         } else {
             //TODO: get current GPS coordinates, here are example ones for Warsaw
@@ -117,22 +120,35 @@ class Home extends Component {
             if (city.err) {
                 this.setState({ error: city.err });
             };
-            const newLocation = await this.getForecastData({ id, city: city.data, lat: 52.230983, lon: 21.006630 });
-            if (newLocation.err || !newLocation.data) {
-                this.setState({ error: newLocation.err });
+            primaryLocationData = await this.getForecastData({ id, city: city.data, lat: 52.230983, lon: 21.006630 });
+            if (primaryLocationData.err || !primaryLocationData.data) {
+                return this.setState({ error: primaryLocationData.err });
             } else {
                 this.setState({
-                    isLoading: false,
                     userPrimaryLocation: { id, city: city.data, lat: 52.230983, lon: 21.006630 },
-                    savedLocations: [...this.state.savedLocations, newLocation.data],
                 });
             };
         };
-        //TODO: get secondary locations data
+        // Get secondary locations data
+        //TODO: get data from AsyncStorage
+        for (let i = 0; i < this.state.secondaryLocationsDisplayed; i++) {
+            const id = this.generateId();
+            const newLocation = await this.getForecastData({ id, city: 'Kraków', lat: 50.061766, lon: 19.937409 });
+            if (newLocation.err || !newLocation.data) {
+                return this.setState({ error: newLocation.err });
+            } else {
+                secondaryLocationsData[i] = { ...newLocation.data, id, city: 'Kraków', lat: 50.061766, lon: 19.937409 };
+            };
+        };
+        this.setState({
+            isLoading: false,
+            userSecondaryLocations: secondaryLocationsData,
+            savedLocations: [...this.state.savedLocations, ...secondaryLocationsData, primaryLocationData.data],
+        });
     };
 
     render() {
-        const { isLoading, error, savedLocations, userPrimaryLocation } = this.state;
+        const { isLoading, error, secondaryLocationsDisplayed, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
         if (isLoading) {
             return (
                 <View style={styles.container}>
@@ -155,9 +171,17 @@ class Home extends Component {
                     weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
                     assignIcon={this.assignIcon}
                 />
-                <View style={{ flex: 3, flexDirection: 'row' }}>
-                    <SecondaryLocation />
-                    <SecondaryLocation />
+                <View style={styles.secondaryLocationsContainer}>
+                    {
+                        userSecondaryLocations.map(location => {
+                            return <SecondaryLocation
+                                key={location.id}
+                                showDetails={() => this.props.navigation.navigate('LocationDetails')}
+                                weather={savedLocations.filter(loc => loc.id === location.id)[0]}
+                                assignIcon={this.assignIcon}
+                            />
+                        })
+                    }
                 </View>
                 <Footer />
             </View>
@@ -168,6 +192,10 @@ class Home extends Component {
 const styles = StyleSheet.create({ //TODO: add styles
     container: {
         flex: 1,
+    },
+    secondaryLocationsContainer: {
+        flex: 3,
+        flexDirection: 'row',
     },
 });
 
