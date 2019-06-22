@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Button, AsyncStorage } from 'react-native';
 import * as Permissions from 'expo-permissions';
 import * as Location from 'expo-location';
 
@@ -13,7 +13,8 @@ class Home extends Component {
         isLoading: true,
         geolocation: true, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
         secondaryLocationsDisplayed: 2,
-        userPrimaryLocation: {}, // { id, city, lat, lon } -- simplified data of location set by user as primary location
+        userPrimaryLocation: {}, // { id, city, lat, lon } -- current GPS location or same as userFallbackPrimaryLocation
+        userFallbackPrimaryLocation: {}, // { id, city, lat, lon } -- simplified data of location set by user as primary location
         userSecondaryLocations: [], // [ { id, city, lat, lon } ] -- simplified data of locations set by user as secondary locations
         savedLocations: [], // [ { ...recievedData, id, city } ] -- all data saved during session with added IDs and city names
         error: '',
@@ -33,8 +34,15 @@ class Home extends Component {
                 If both statements are true - function will return data of that city / coords (if there are more such objects, it will choose youngest one and delete others).
     */
 
-    static navigationOptions = {
-        title: 'Home',
+    static navigationOptions = ({ navigation }) => {
+        return {
+            title: 'Home',
+                headerRight: <Button
+                    onPress={() => navigation.navigate('Settings', { getCoords: navigation.getParam('getCoords') })}
+                    title='Settings'
+                    color='#448AFF'
+                />
+        };
     };
 
     // Ask for geolocation permissions. It is necessary for reverse geocoding to work even if state.geolocation is set to false.
@@ -47,8 +55,35 @@ class Home extends Component {
         }
     };
 
+    // Return current device position (latitude and longitude).
+    getCurrentPosition = async() => {
+        let permissions = this.askForPermissions();
+        if (permissions.err) {
+            return { err: permissions.err, data: null };
+        };
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.low, maximumAge: 1000 * 60 * 5 });
+        if (!position.coords.latitude || !position.coords.longitude) {
+            return { err: 'Unable to obtain current position', data: null };
+        };
+        return { err: null, data: position }
+    };
+
+    // Return city coordinates from given address.
+    getCoordsFromCity = async(city) => {
+        console.log('coords from city', city);
+        let permissions = this.askForPermissions();
+        if (permissions.err) {
+            return { err: permissions.err, data: null };
+        };
+        let coords = await Location.geocodeAsync(city);
+        if (!coords || coords.length === 0) {
+            return { err: 'Unable to obtain city geographical coordinates.', data: null };
+        };
+        return { err: null, data: coords };
+    };
+
     // Return city name from given latitude and longitude.
-    getCityFromCoords = async (lat, lon) => {
+    getCityFromCoords = async(lat, lon) => {
         let permissions = this.askForPermissions();
         if (permissions.err) {
             return { err: permissions.err, data: `${lat}, ${lon}` };
@@ -106,7 +141,11 @@ class Home extends Component {
     };
 
     componentDidMount = async () => {
-        // Get primary location data
+        // Provide navigation with variables and functions that need to be passed to Settings component.
+        this.props.navigation.setParams({
+            getCoords: this.getCoordsFromCity,
+        });
+        // Get primary location data.
         //TODO: Setup event listeners for AppState change
         let primaryLocationData;
         let secondaryLocationsData = new Array(this.state.secondaryLocationsDisplayed);
@@ -114,22 +153,27 @@ class Home extends Component {
             //TODO: get data from AsyncStorage and run generateId(), getForecastData({ ...userPrimaryLocation, id });
             //TODO: If there is no such data, ask user to provide it or turn geolocation on
         } else {
-            //TODO: get current GPS coordinates, here are example ones for Warsaw
+            const currentPosition = await this.getCurrentPosition();
+            if (currentPosition.err) {
+                this.setState({ error: currentPosition.err });
+                currentPosition.data.coords = { latitude: 52.230983, longitude: 21.006630 } //TODO: data from saved fallback location from AsyncStorage should go here
+            };
+            const { latitude, longitude } = currentPosition.data.coords;
             const id = this.generateId();
-            const city = await this.getCityFromCoords(52.230983, 21.006630);
+            const city = await this.getCityFromCoords(latitude, longitude);
             if (city.err) {
                 this.setState({ error: city.err });
             };
-            primaryLocationData = await this.getForecastData({ id, city: city.data, lat: 52.230983, lon: 21.006630 });
+            primaryLocationData = await this.getForecastData({ id, city: city.data, lat: latitude, lon: longitude });
             if (primaryLocationData.err || !primaryLocationData.data) {
                 return this.setState({ error: primaryLocationData.err });
             } else {
                 this.setState({
-                    userPrimaryLocation: { id, city: city.data, lat: 52.230983, lon: 21.006630 },
+                    userPrimaryLocation: { id, city: city.data, lat: latitude, lon: longitude },
                 });
             };
         };
-        // Get secondary locations data
+        // Get secondary locations data.
         //TODO: get data from AsyncStorage
         for (let i = 0; i < this.state.secondaryLocationsDisplayed; i++) {
             const id = this.generateId();
@@ -148,7 +192,7 @@ class Home extends Component {
     };
 
     render() {
-        const { isLoading, error, secondaryLocationsDisplayed, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
+        const { isLoading, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
         if (isLoading) {
             return (
                 <View style={styles.container}>

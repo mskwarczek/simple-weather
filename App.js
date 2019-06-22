@@ -1,12 +1,11 @@
 import React, { Component } from 'react';
-import { Button } from 'react-native';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 
 import Home from './src/views/Home';
 import LocationDetails from './src/views/LocationDetails';
 import Settings from './src/views/Settings';
 
-const AppNavigator = createStackNavigator({ //TODO: maybe move to separate file
+const AppNavigator = createStackNavigator({
     Home: {
         screen: Home,
     },
@@ -17,7 +16,7 @@ const AppNavigator = createStackNavigator({ //TODO: maybe move to separate file
         screen: Settings,
     }}, {
     initialRouteName: 'Home',
-    defaultNavigationOptions: { //TODO: add styles
+    defaultNavigationOptions: {
         headerStyle: {
             backgroundColor: '#4CAF50',
         },
@@ -25,13 +24,6 @@ const AppNavigator = createStackNavigator({ //TODO: maybe move to separate file
         headerTitleStyle: {
             fontWeight: 'bold',
         },
-        headerRight: ( //TODO: add a button that will render fullscreen modal with options like: geolocation ON/OFF, home screen setup, about this app i odnośnikami do konkretnych widoków
-            <Button
-                onPress={() => alert('This is a button!')}
-                title='Info'
-                color='#448AFF'
-            />
-        ),
     },
 });
 
