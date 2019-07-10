@@ -1,33 +1,51 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Button, Picker } from 'react-native';
+import { StyleSheet, View, Button, Picker, AsyncStorage } from 'react-native';
 
 import SearchInput from '../common/SearchInput';
 import { P, H1, H2 } from '../common/components';
 
 class Settings extends Component {
     state = {
-        geocoding: true,
-        primaryLocation: '',
-        secondaryLocation1: '',
-        secondaryLocation2: '',
+        geolocation: false,
+        userFallbackPrimaryLocation: '',
+        userSecondaryLocations: [],
     };
 
     static navigationOptions = {
         title: 'Settings',
     };
-    // This must be tied to AsyncStorage, code below is just a temporary solution.
-    updateState = (type, value) => {
+
+    componentDidMount = async () => {
+        const retrieveUserSettings = this.props.navigation.getParam('retrieveUserSettings');
+        const dataFromAsyncStorage = await retrieveUserSettings();
+        if (!dataFromAsyncStorage.err && dataFromAsyncStorage.data) {
+            this.setState({
+                ...dataFromAsyncStorage.data,
+            });
+        };
+    };
+
+    updateState = (type, value, index) => {
         switch(type) {
-            case 'geocoding': this.setState({ geocoding: value }); break;
-            case 'primaryLocation': this.setState({ primaryLocation: value }); break;
-            case 'secondaryLocation1': this.setState({ secondaryLocation1: value }); break;
-            case 'secondaryLocation2': this.setState({ secondaryLocation2: value }); break;
+            case 'geolocation': this.setState({ geolocation: value }); break;
+            case 'userFallbackPrimaryLocation': this.setState({ userFallbackPrimaryLocation: value }); break;
+            case 'userSecondaryLocations': this.setState({ userSecondaryLocations: Object.assign(this.state.userSecondaryLocations, { [index]: value }) }); break;
             default: return;
         };
     };
 
+    resetState = async () => {
+        await AsyncStorage.removeItem('SETTINGS');
+        this.setState({
+            geolocation: false,
+            userFallbackPrimaryLocation: '',
+            userSecondaryLocations: [],
+        });
+    };
+
     render() {
         console.log(this.state);
+        storeUserSettings = this.props.navigation.getParam('storeUserSettings');
         return (
             <View style={styles.container}>
                 <View style={styles.box}>
@@ -39,15 +57,16 @@ class Settings extends Component {
                     <SearchInput 
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
-                        type='primaryLocation'
+                        type='userFallbackPrimaryLocation'
+                        index={null}
                     />
                 </View>
                 <View style={styles.box}>
-                    <P>Enable geolocalization for primary location:</P>
+                    <P>Enable geolocation for primary location:</P>
                     <Picker
-                        selectedValue={this.state.geocoding}
+                        selectedValue={this.state.geolocation}
                         style={{height: 50, width: 100}}
-                        onValueChange={(value) => this.updateState('geocoding', value)}>
+                        onValueChange={(value) => this.updateState('geolocation', value)}>
                         <Picker.Item label='ON' value={true} />
                         <Picker.Item label='OFF' value={false} />
                     </Picker>
@@ -57,7 +76,8 @@ class Settings extends Component {
                     <SearchInput 
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
-                        type='secondaryLocation1'
+                        type='userSecondaryLocations'
+                        index={0}
                     />
                 </View>
                 <View style={styles.box}>
@@ -65,7 +85,8 @@ class Settings extends Component {
                     <SearchInput 
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
-                        type='secondaryLocation2'
+                        type='userSecondaryLocations'
+                        index={1}
                     />
                 </View>
                 <View style={styles.row}>
@@ -77,7 +98,12 @@ class Settings extends Component {
                     <Button
                         title='Save'
                         color='#448AFF'
-                        onPress={() => this.props.navigation.pop()}
+                        onPress={() => storeUserSettings(this.state)}
+                    />
+                    <Button
+                        title='Reset'
+                        color='#448AFF'
+                        onPress={() => this.resetState()}
                     />
                 </View>
             </View>

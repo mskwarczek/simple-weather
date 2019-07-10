@@ -16,7 +16,7 @@ class SearchInput extends Component {
         if (result.err || !result.data) {
             this.setState({ error: result.err });
         } else {
-            this.props.updateState(this.props.type, result.data[0]);
+            this.props.updateState(this.props.type, result.data[0], this.props.index);
         };
     };
 

@@ -11,7 +11,7 @@ import Footer from './home-components/Footer';
 class Home extends Component {
     state = {
         isLoading: true,
-        geolocation: true, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
+        geolocation: false, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
         secondaryLocationsDisplayed: 2,
         userPrimaryLocation: {}, // { id, city, lat, lon } -- current GPS location or same as userFallbackPrimaryLocation
         userFallbackPrimaryLocation: {}, // { id, city, lat, lon } -- simplified data of location set by user as primary location
@@ -38,10 +38,55 @@ class Home extends Component {
         return {
             title: 'Home',
                 headerRight: <Button
-                    onPress={() => navigation.navigate('Settings', { getCoords: navigation.getParam('getCoords') })}
+                    onPress={() => navigation.navigate('Settings', {
+                        getCoords: navigation.getParam('getCoords'),
+                        retrieveUserSettings: navigation.getParam('retrieveUserSettings'),
+                        storeUserSettings: navigation.getParam('storeUserSettings')
+                    })}
                     title='Settings'
                     color='#448AFF'
                 />
+        };
+    };
+
+    // Combine location coordinates with ID and city name.
+    addIdAndCityToLocation = async (location) => {
+        const id = this.generateId();
+        const city = await this.getCityFromCoords(location.latitude, location.longitude);
+        return { ...location, id, city: city.data };
+    };
+
+    // Store user settings in AsyncStorage.
+    storeDataInAsyncStorage = async (settings) => {
+        if (settings.userFallbackPrimaryLocation) {
+            settings.userFallbackPrimaryLocation  = await this.addIdAndCityToLocation(settings.userFallbackPrimaryLocation);
+        };
+        if (settings.userSecondaryLocations) {
+            for (let i = 0; i < settings.userSecondaryLocations.length; i++) {
+                settings.userSecondaryLocations[i] = await this.addIdAndCityToLocation(settings.userSecondaryLocations[i]);
+            };
+        };
+        try {
+            await AsyncStorage.setItem('SETTINGS', JSON.stringify(settings));
+            this.setState({
+                geolocation: settings.geolocation,
+                userFallbackPrimaryLocation: settings.userFallbackPrimaryLocation,
+                userSecondaryLocations: settings.userSecondaryLocations,
+            });
+        } catch (err) {
+            return err;
+        };
+    };
+
+    // Retrieve user settings from AsyncStorage. 
+    retrieveSettingsFromAsyncStorage = async () => {
+        try {
+            const appStateFromAsyncStorage = await AsyncStorage.getItem('SETTINGS');
+            if (appStateFromAsyncStorage) {
+                return { err: null, data: JSON.parse(appStateFromAsyncStorage) };
+            } else return { err: null, data: null };
+        } catch (err) {
+            return { err, data: null };
         };
     };
 
@@ -51,8 +96,8 @@ class Home extends Component {
         if (status !== 'granted') {
             return { err: 'Permission to access location was denied.' }
         } else {
-            return { err: null }
-        }
+            return { err: null };
+        };
     };
 
     // Return current device position (latitude and longitude).
@@ -65,12 +110,11 @@ class Home extends Component {
         if (!position.coords.latitude || !position.coords.longitude) {
             return { err: 'Unable to obtain current position', data: null };
         };
-        return { err: null, data: position }
+        return { err: null, data: position };
     };
 
     // Return city coordinates from given address.
     getCoordsFromCity = async(city) => {
-        console.log('coords from city', city);
         let permissions = this.askForPermissions();
         if (permissions.err) {
             return { err: permissions.err, data: null };
@@ -136,7 +180,7 @@ class Home extends Component {
             case 'cloudy': return { name: 'weather-cloudy', category: 'MaterialCommunityIcons', color: wet };
             case 'partly-cloudy-day': return { name: 'weather-partlycloudy', category: 'MaterialCommunityIcons', color: wet };
             case 'partly-cloudy-night': return { name: 'md-cloudy-night', category: 'Ionicons', color: dark };
-            default: return { name: 'weather-partlycloudy', category: 'MaterialCommunityIcons', color: wet };;
+            default: return { name: 'weather-partlycloudy', category: 'MaterialCommunityIcons', color: wet };
         };
     };
 
@@ -144,19 +188,41 @@ class Home extends Component {
         // Provide navigation with variables and functions that need to be passed to Settings component.
         this.props.navigation.setParams({
             getCoords: this.getCoordsFromCity,
+            retrieveUserSettings: this.retrieveSettingsFromAsyncStorage,
+            storeUserSettings: this.storeDataInAsyncStorage,
         });
+        // Retrieve initial state settings from AsyncStorage.
+        let savedState = await this.retrieveSettingsFromAsyncStorage();
+        savedState = savedState.data;
+        if (!savedState || !savedState.userPrimaryLocation) {
+            //TODO: Relocate user to settings view
+            console.log('no initial state');
+        };
+        console.log(savedState);
         // Get primary location data.
         //TODO: Setup event listeners for AppState change
         let primaryLocationData;
-        let secondaryLocationsData = new Array(this.state.secondaryLocationsDisplayed);
-        if (!this.state.geolocation) {
-            //TODO: get data from AsyncStorage and run generateId(), getForecastData({ ...userPrimaryLocation, id });
-            //TODO: If there is no such data, ask user to provide it or turn geolocation on
+        if (!this.state.geolocation && !savedState.geolocation) {
+            //TODO: If there is no data in AsyncStorage, ask user to provide it or turn geolocation on
+            console.log('geolocation off');
+            const { id, city, latitude, longitude } = savedState.userFallbackPrimaryLocation;
+            console.log(savedState.userFallbackPrimaryLocation);
+            primaryLocationData = await this.getForecastData({ id, city, lat: latitude, lon: longitude });
+            if (primaryLocationData.err || !primaryLocationData.data) {
+                return this.setState({ error: primaryLocationData.err });
+            } else {
+                this.setState({
+                    userPrimaryLocation: { id, city, lat: latitude, lon: longitude },
+                });
+            };
         } else {
             const currentPosition = await this.getCurrentPosition();
             if (currentPosition.err) {
                 this.setState({ error: currentPosition.err });
-                currentPosition.data.coords = { latitude: 52.230983, longitude: 21.006630 } //TODO: data from saved fallback location from AsyncStorage should go here
+                currentPosition.data.coords = {
+                    latitude: this.state.userFallbackPrimaryLocation.latitude,
+                    longitude: this.state.userFallbackPrimaryLocation.longitude,
+                };
             };
             const { latitude, longitude } = currentPosition.data.coords;
             const id = this.generateId();
@@ -174,24 +240,25 @@ class Home extends Component {
             };
         };
         // Get secondary locations data.
-        //TODO: get data from AsyncStorage
-        for (let i = 0; i < this.state.secondaryLocationsDisplayed; i++) {
-            const id = this.generateId();
-            const newLocation = await this.getForecastData({ id, city: 'Kraków', lat: 50.061766, lon: 19.937409 });
-            if (newLocation.err || !newLocation.data) {
-                return this.setState({ error: newLocation.err });
-            } else {
-                secondaryLocationsData[i] = { ...newLocation.data, id, city: 'Kraków', lat: 50.061766, lon: 19.937409 };
+        let secondaryLocationsData = [];
+        if (savedState && savedState.userSecondaryLocations.length > 0) {
+            for (let i = 0; i < savedState.userSecondaryLocations.length; i++) {
+                const { id, city, latitude, longitude } = savedState.userSecondaryLocations[i];
+                secondaryLocationsData[i] = await this.getForecastData({ id, city, lat: latitude, lon: longitude });
+                secondaryLocationsData[i] = secondaryLocationsData[i].data;
             };
         };
         this.setState({
             isLoading: false,
-            userSecondaryLocations: secondaryLocationsData,
+            geolocation: savedState.geolocation,
+            userFallbackPrimaryLocation: savedState.userFallbackPrimaryLocation,
+            userSecondaryLocations: savedState.userSecondaryLocations,
             savedLocations: [...this.state.savedLocations, ...secondaryLocationsData, primaryLocationData.data],
         });
     };
 
     render() {
+        console.log('home render');
         const { isLoading, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
         if (isLoading) {
             return (
@@ -217,7 +284,7 @@ class Home extends Component {
                 />
                 <View style={styles.secondaryLocationsContainer}>
                     {
-                        userSecondaryLocations.map(location => {
+                        userSecondaryLocations && userSecondaryLocations.map(location => {
                             return <SecondaryLocation
                                 key={location.id}
                                 showDetails={() => this.props.navigation.navigate('LocationDetails')}
