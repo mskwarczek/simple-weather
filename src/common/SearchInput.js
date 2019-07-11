@@ -7,7 +7,7 @@ import { P } from './components';
 //TODO: Google places dynamic search
 class SearchInput extends Component {
     state = {
-        text: '',
+        text: this.props.value,
         error: '',
     };
 

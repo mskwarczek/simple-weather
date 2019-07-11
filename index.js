@@ -15,10 +15,14 @@ server.get('/api/forecast', (req, res) => {
         .then(data => data.json())
         .then(data => {
             console.log(data); // dev
-            res.send(data);
+            if (data.code !== 200) {
+                res.status(403).send(data);
+            } else {
+                res.send(data);
+            };
         })
         .catch(err => {
-            res.send(`Could not fetch forecast data from DarkSky servers. ${err}`);
+            res.send(err);
         });
 });
 

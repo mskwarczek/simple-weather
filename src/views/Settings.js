@@ -15,14 +15,11 @@ class Settings extends Component {
         title: 'Settings',
     };
 
-    componentDidMount = async () => {
-        const retrieveUserSettings = this.props.navigation.getParam('retrieveUserSettings');
-        const dataFromAsyncStorage = await retrieveUserSettings();
-        if (!dataFromAsyncStorage.err && dataFromAsyncStorage.data) {
-            this.setState({
-                ...dataFromAsyncStorage.data,
-            });
-        };
+    componentWillMount = async () => {
+        const userSettings = this.props.navigation.getParam('userSettings');
+        this.setState({
+            ...userSettings,
+        });
     };
 
     updateState = (type, value, index) => {
@@ -59,6 +56,7 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userFallbackPrimaryLocation'
                         index={null}
+                        value={this.state.userFallbackPrimaryLocation.city}
                     />
                 </View>
                 <View style={styles.box}>
@@ -78,6 +76,7 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={0}
+                        value={this.state.userSecondaryLocations[0].city}
                     />
                 </View>
                 <View style={styles.box}>
@@ -87,6 +86,7 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={1}
+                        value={this.state.userSecondaryLocations[1].city}
                     />
                 </View>
                 <View style={styles.row}>
