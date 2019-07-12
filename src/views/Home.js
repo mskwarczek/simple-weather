@@ -306,7 +306,6 @@ class Home extends Component {
     render() {
         console.log('home render');
         const { isLoading, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
-        console.log(userPrimaryLocation);
         if (isLoading) {
             return (
                 <View style={styles.container}>
@@ -325,7 +324,10 @@ class Home extends Component {
             <View style={styles.container}>
                 <SearchBar />
                 <PrimaryLocation 
-                    showDetails={() => this.props.navigation.navigate('LocationDetails')}
+                    showDetails={() => this.props.navigation.navigate('LocationDetails', { 
+                        weather: savedLocations.filter(location => location.id === userPrimaryLocation.id)[0],
+                        assignIcon: this.assignIcon,
+                    })}
                     weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
                     assignIcon={this.assignIcon}
                 />
@@ -334,7 +336,10 @@ class Home extends Component {
                         userSecondaryLocations && userSecondaryLocations.map(location => {
                             return <SecondaryLocation
                                 key={location.id}
-                                showDetails={() => this.props.navigation.navigate('LocationDetails')}
+                                showDetails={() => this.props.navigation.navigate('LocationDetails', {
+                                    weather: savedLocations.filter(loc => loc.id === location.id)[0],
+                                    assignIcon: this.assignIcon,
+                                })}
                                 weather={savedLocations.filter(loc => loc.id === location.id)[0]}
                                 assignIcon={this.assignIcon}
                             />

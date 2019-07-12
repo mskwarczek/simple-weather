@@ -9,6 +9,7 @@ export class P extends Component {
                 fontSize: 14,
                 color: '#444',
                 textAlign: 'center',
+                margin: 3,
             }}>
                 {this.props.children}
             </Text>
