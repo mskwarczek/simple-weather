@@ -7,7 +7,7 @@ import { P } from './components';
 //TODO: Google places dynamic search
 class SearchInput extends Component {
     state = {
-        text: this.props.value,
+        text: null,
         error: '',
     };
 
@@ -28,6 +28,7 @@ class SearchInput extends Component {
                     style={styles.input}
                     onChangeText={(text) => this.setState({ text })}
                     value={this.state.text}
+                    defaultValue={this.props.defaultValue}
                 />
                 <Button
                     title='Set'

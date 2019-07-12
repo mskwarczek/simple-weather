@@ -15,10 +15,10 @@ server.get('/api/forecast', (req, res) => {
         .then(data => data.json())
         .then(data => {
             console.log(data); // dev
-            if (data.code !== 200) {
+            if (data.code === 403) {
                 res.status(403).send(data);
             } else {
-                res.send(data);
+                res.status(200).send(data);
             };
         })
         .catch(err => {

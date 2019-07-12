@@ -51,6 +51,7 @@ class Home extends Component {
 
     // Provide navigation with variables and functions that need to be passed to Settings component.
     setNavigationParams = () => {
+        console.log('setNavigationParams');
         this.props.navigation.setParams({
             getCoords: this.getCoordsFromCity,
             storeUserSettings: this.storeDataInAsyncStorage,
@@ -64,6 +65,7 @@ class Home extends Component {
 
     // Combine location coordinates with ID and city name.
     addIdAndCityToLocation = async (location) => {
+        console.log('addIdAndCityToLocation');
         const id = this.generateId();
         const city = await this.getCityFromCoords(location.latitude, location.longitude);
         if (city.err) {
@@ -74,6 +76,7 @@ class Home extends Component {
 
     // Store user settings in AsyncStorage and trigger component reload.
     storeDataInAsyncStorage = async (settings) => {
+        console.log('storeDataInAsyncStorage');
         if (settings.userFallbackPrimaryLocation) {
             settings.userFallbackPrimaryLocation  = await this.addIdAndCityToLocation(settings.userFallbackPrimaryLocation);
         };
@@ -87,40 +90,39 @@ class Home extends Component {
         } catch (err) {
             return err;
         };
-        this.setState({
-            geolocation: settings.geolocation,
-            userFallbackPrimaryLocation: settings.userFallbackPrimaryLocation,
-            userSecondaryLocations: settings.userSecondaryLocations,
-        });
-        await this.componentReload();
+        this.componentReload();
     };
 
     // Retrieve user settings from AsyncStorage. 
     retrieveSettingsFromAsyncStorage = async () => {
+        console.log('retrieveSettingsFromAsyncStorage');
         try {
             let appStateFromAsyncStorage = await AsyncStorage.getItem('SETTINGS');
-            appStateFromAsyncStorage = JSON.parse(appStateFromAsyncStorage);
-            if (appStateFromAsyncStorage.userFallbackPrimaryLocation && appStateFromAsyncStorage.userSecondaryLocations) {
+            if (appStateFromAsyncStorage) {
+                appStateFromAsyncStorage = JSON.parse(appStateFromAsyncStorage);
+            } else {
+                throw new Error('No initial state');
+            };
+            if (appStateFromAsyncStorage.userFallbackPrimaryLocation && appStateFromAsyncStorage.userSecondaryLocations.length) {
                 this.setState({
                     geolocation: appStateFromAsyncStorage.geolocation,
                     userFallbackPrimaryLocation: appStateFromAsyncStorage.userFallbackPrimaryLocation,
                     userSecondaryLocations: appStateFromAsyncStorage.userSecondaryLocations,
                 });
             } else {
-                //TODO: Relocate user to settings view (e.g. will trigger on first use)
-                this.setState({
-                    error: 'No initial state',
-                });
+                throw new Error('Initial state empty');
             };
         } catch (error) {
+            //TODO: Relocate user to settings view (e.g. will trigger on first use)
             return this.setState({
-                error,
+                error: error.message,
             });
         };
     };
 
     // Get primary location weather data (3 variants: geolocation off, geolocation on and geolocation on but not working properly).
-    getprimaryLocationWeatherData = async () => {
+    getPrimaryLocationWeatherData = async () => {
+        console.log('getprimaryLocationWeatherData');
         let primaryLocationWeatherData;
         let lat, lon, id, city;
         if (!this.state.geolocation) {
@@ -139,7 +141,7 @@ class Home extends Component {
             };
             lat = currentPosition.data.coords.latitude;
             lon = currentPosition.data.coords.longitude;
-            combinedData =  this.addIdAndCityToLocation(currentPosition.data.coords);
+            combinedData = await this.addIdAndCityToLocation(currentPosition.data.coords);
             id = combinedData.id;
             city = combinedData.city;
         };
@@ -156,8 +158,9 @@ class Home extends Component {
 
     // Get secondary locations weather data.
     getSecondaryLocationsWeatherData = async () => {
+        console.log('getSecondaryLocationsWeatherData');
         let secondaryLocationsWeatherData = [];
-        if (!this.state.userSecondaryLocations.length) {
+        if (this.state.userSecondaryLocations.length) {
             for (let i = 0; i < this.state.userSecondaryLocations.length; i++) {
                 const { id, city, latitude, longitude } = this.state.userSecondaryLocations[i];
                 secondaryLocationsWeatherData[i] = await this.getForecastData({ id, city, lat: latitude, lon: longitude });
@@ -173,6 +176,7 @@ class Home extends Component {
 
     // Ask for geolocation permissions. It is necessary for geocoding and reverse geocoding to work even if state.geolocation is set to false.
     askForPermissions = async() => {
+        console.log('askForPermissions');
         let { status } = await Permissions.askAsync(Permissions.LOCATION);
         if (status !== 'granted') {
             return { err: 'Permission to access location was denied.' }
@@ -183,6 +187,7 @@ class Home extends Component {
 
     // Return current device position (latitude and longitude).
     getCurrentPosition = async() => {
+        console.log('getCurrentPosition');
         let permissions = this.askForPermissions();
         if (permissions.err) {
             return { err: permissions.err, data: null };
@@ -196,6 +201,7 @@ class Home extends Component {
 
     // Return city coordinates from given address.
     getCoordsFromCity = async(city) => {
+        console.log('getCoordsFromCity');
         let permissions = this.askForPermissions();
         if (permissions.err) {
             return { err: permissions.err, data: null };
@@ -209,6 +215,7 @@ class Home extends Component {
 
     // Return city name from given latitude and longitude.
     getCityFromCoords = async(lat, lon) => {
+        console.log('getCityFromCoords');
         let permissions = this.askForPermissions();
         if (permissions.err) {
             return { err: permissions.err, data: `${lat}, ${lon}` };
@@ -222,6 +229,7 @@ class Home extends Component {
 
     // Generate unique id for state.savedLocations.
     generateId = () => {
+        console.log('generateId');
         let firstPart = (Math.random() * 46656) | 0;
         let secondPart = (Math.random() * 46656) | 0;
         firstPart = ("000" + firstPart.toString(36)).slice(-3);
@@ -231,18 +239,20 @@ class Home extends Component {
 
     // Get forecast data from the server and save it to state.savedLocations.
     getForecastData = async(location) => {
+        console.log('getForecastData');
         const { id, city, lat, lon } = location;
         let newLocation = await fetch(`http://10.0.0.5:5000/api/forecast?lat=${lat}&lon=${lon}&lang=pl`)
             .then(res => res.json())
             .then(res => {
-                if (res.status !== 200) {
+                if (res.status === 403) {
                     throw new Error(res.error);
-                }
-                newLocation = { ...res, city, id };
-                return { err: null, data: newLocation };
+                } else {
+                    newLocation = { ...res, city, id };
+                    return newLocation = { err: null, data: newLocation };
+                };
             })
             .catch(err => {
-                return { err: `Unable to fetch data from server. ${err}`, data: null };
+                return newLocation = { err: `Unable to fetch data from server. ${err}`, data: null };
             });
         return newLocation;
     };
@@ -270,16 +280,16 @@ class Home extends Component {
 
     // Retrieve and fetche all data necessary for proper weather forecast display (it is the core of this whole app).
     componentReload = async () => {
-        const { isLoading, userFallbackPrimaryLocation, userSecondaryLocations } = this.state;
-        if (isLoading) {
+        console.log('componentReload');
+        const { isLoading } = this.state;
+        if (!isLoading) {
             this.setState({
                 isLoading: true,
+                error: '',
             });
         };
-        if (!userFallbackPrimaryLocation || !userSecondaryLocations || !userSecondaryLocations.length) {
-            await this.retrieveSettingsFromAsyncStorage();
-        };
-        let primaryLocationWeatherData = await this.getprimaryLocationWeatherData();
+        await this.retrieveSettingsFromAsyncStorage();
+        let primaryLocationWeatherData = await this.getPrimaryLocationWeatherData();
         let secondaryLocationsWeatherData = await this.getSecondaryLocationsWeatherData();
         this.setNavigationParams();
         this.setState({
@@ -296,6 +306,7 @@ class Home extends Component {
     render() {
         console.log('home render');
         const { isLoading, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
+        console.log(userPrimaryLocation);
         if (isLoading) {
             return (
                 <View style={styles.container}>

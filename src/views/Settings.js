@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Button, Picker, AsyncStorage } from 'react-native';
+import { StyleSheet, View, Button, Picker } from 'react-native';
 
 import SearchInput from '../common/SearchInput';
 import { P, H1, H2 } from '../common/components';
@@ -15,13 +15,6 @@ class Settings extends Component {
         title: 'Settings',
     };
 
-    componentWillMount = async () => {
-        const userSettings = this.props.navigation.getParam('userSettings');
-        this.setState({
-            ...userSettings,
-        });
-    };
-
     updateState = (type, value, index) => {
         switch(type) {
             case 'geolocation': this.setState({ geolocation: value }); break;
@@ -32,7 +25,12 @@ class Settings extends Component {
     };
 
     resetState = async () => {
-        await AsyncStorage.removeItem('SETTINGS');
+        const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
+        storeUserSettings({
+            geolocation: false,
+            userFallbackPrimaryLocation: '',
+            userSecondaryLocations: [],
+        });
         this.setState({
             geolocation: false,
             userFallbackPrimaryLocation: '',
@@ -40,9 +38,19 @@ class Settings extends Component {
         });
     };
 
+    componentDidMount() {
+        let userSettings = this.props.navigation.getParam('userSettings');
+        this.setState({
+            ...userSettings,
+        });
+    };
+
     render() {
         console.log(this.state);
-        storeUserSettings = this.props.navigation.getParam('storeUserSettings');
+        const userSettings = this.props.navigation.getParam('userSettings');
+        console.log('params');
+        console.log(userSettings);
+        const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
         return (
             <View style={styles.container}>
                 <View style={styles.box}>
@@ -56,7 +64,11 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userFallbackPrimaryLocation'
                         index={null}
-                        value={this.state.userFallbackPrimaryLocation.city}
+                        defaultValue={
+                            this.state.userFallbackPrimaryLocation
+                            ? this.state.userFallbackPrimaryLocation.city
+                            : ''
+                        }
                     />
                 </View>
                 <View style={styles.box}>
@@ -76,7 +88,10 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={0}
-                        value={this.state.userSecondaryLocations[0].city}
+                        defaultValue={this.state.userSecondaryLocations[0]
+                            ? this.state.userSecondaryLocations[0].city
+                            : ''
+                        }
                     />
                 </View>
                 <View style={styles.box}>
@@ -86,7 +101,10 @@ class Settings extends Component {
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={1}
-                        value={this.state.userSecondaryLocations[1].city}
+                        defaultValue={this.state.userSecondaryLocations[1]
+                            ? this.state.userSecondaryLocations[1].city
+                            : ''
+                        }
                     />
                 </View>
                 <View style={styles.row}>
