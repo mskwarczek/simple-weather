@@ -46,10 +46,6 @@ class Settings extends Component {
     };
 
     render() {
-        console.log(this.state);
-        const userSettings = this.props.navigation.getParam('userSettings');
-        console.log('params');
-        console.log(userSettings);
         const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
         return (
             <View style={styles.container}>

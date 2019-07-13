@@ -13,9 +13,11 @@ class Home extends Component {
         isLoading: true,
         geolocation: false, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
         secondaryLocationsDisplayed: 2,
-        userPrimaryLocation: {}, // { id, city, lat, lon } -- current GPS location or same as userFallbackPrimaryLocation
-        userFallbackPrimaryLocation: {}, // { id, city, lat, lon } -- simplified data of location set by user as primary location
-        userSecondaryLocations: [], // [ { id, city, lat, lon } ] -- simplified data of locations set by user as secondary locations
+        maxForecastLifetime: 3600, // in seconds
+        minGeolocationAccuracy: 0.01, // in decimal degrees
+        userPrimaryLocation: {}, // { id, city, latitude, longitude } -- current GPS location or same as userFallbackPrimaryLocation
+        userFallbackPrimaryLocation: {}, // { id, city, latitude, longitude } -- simplified data of location set by user as primary location
+        userSecondaryLocations: [], // [ { id, city, latitude, longitude } ] -- simplified data of locations set by user as secondary locations
         savedLocations: [], // [ { ...recievedData, id, city } ] -- all data saved during session with added IDs and city names
         error: '',
     };
@@ -63,9 +65,47 @@ class Home extends Component {
         });
     };
 
+    // Check if savedLocation forecast data is still valid and delete it if not.
+    deleteLocationIfExpired = (location) => {
+        console.log('deleteLocationIfExpired');
+        if (((Date.now() / 1000) - location.currently.time) > this.state.maxForecastLifetime) {
+            this.setState({
+                savedLocations: this.state.savedLocations.filter(loc => loc.id !== location.id),
+            });
+            return false;
+        };
+        return location;
+    };
+
+    // Check if given location is already in state.savedLocations.
+    isLocationInSavedLocations = (location, withWeatherData) => {
+        console.log('isLocationInSavedLocations');
+        let savedLocation = this.state.savedLocations.filter(loc => (Math.abs(loc.latitude - location.latitude) < this.state.minGeolocationAccuracy && Math.abs(loc.longitude - location.longitude) < this.state.minGeolocationAccuracy))[0];
+        if (savedLocation) {
+            savedLocation = this.deleteLocationIfExpired(savedLocation);
+        };
+        if (withWeatherData) {
+            return savedLocation
+                ? savedLocation
+                : false;
+        } else {
+            return savedLocation
+                ? { id: savedLocation.id,
+                    city: savedLocation.city,
+                    latitude: savedLocation.latitude,
+                    longitude: savedLocation.longitude,
+                }
+                : false;
+        };
+    };
+
     // Combine location coordinates with ID and city name.
     addIdAndCityToLocation = async (location) => {
         console.log('addIdAndCityToLocation');
+        const savedLocation = this.isLocationInSavedLocations(location, false);
+        if (savedLocation) {
+            return savedLocation;
+        };
         const id = this.generateId();
         const city = await this.getCityFromCoords(location.latitude, location.longitude);
         if (city.err) {
@@ -78,11 +118,11 @@ class Home extends Component {
     storeDataInAsyncStorage = async (settings) => {
         console.log('storeDataInAsyncStorage');
         if (settings.userFallbackPrimaryLocation) {
-            settings.userFallbackPrimaryLocation  = await this.addIdAndCityToLocation(settings.userFallbackPrimaryLocation);
+            settings.userFallbackPrimaryLocation = await this.addIdAndCityToLocation(settings.userFallbackPrimaryLocation);
         };
         if (settings.userSecondaryLocations.length) {
             for (let i = 0; i < settings.userSecondaryLocations.length; i++) {
-                settings.userSecondaryLocations[i] = await this.addIdAndCityToLocation(settings.userSecondaryLocations[i]);
+                settings.userSecondaryLocations[i] = await this.addIdAndCityToLocation(settings.userSecondaryLocations[i])
             };
         };
         try {
@@ -124,10 +164,10 @@ class Home extends Component {
     getPrimaryLocationWeatherData = async () => {
         console.log('getprimaryLocationWeatherData');
         let primaryLocationWeatherData;
-        let lat, lon, id, city;
+        let latitude, longitude, id, city;
         if (!this.state.geolocation) {
-            lat = this.state.userFallbackPrimaryLocation.latitude;
-            lon = this.state.userFallbackPrimaryLocation.longitude;
+            latitude = this.state.userFallbackPrimaryLocation.latitude;
+            longitude = this.state.userFallbackPrimaryLocation.longitude;
             id = this.state.userFallbackPrimaryLocation.id;
             city = this.state.userFallbackPrimaryLocation.city;
         } else {
@@ -139,18 +179,18 @@ class Home extends Component {
                     longitude: this.state.userFallbackPrimaryLocation.longitude,
                 };
             };
-            lat = currentPosition.data.coords.latitude;
-            lon = currentPosition.data.coords.longitude;
+            latitude = currentPosition.data.coords.latitude;
+            longitude = currentPosition.data.coords.longitude;
             combinedData = await this.addIdAndCityToLocation(currentPosition.data.coords);
             id = combinedData.id;
             city = combinedData.city;
         };
-        primaryLocationWeatherData = await this.getForecastData({ id, city, lat, lon });
+        primaryLocationWeatherData = await this.getForecastData({ id, city, latitude, longitude });
         if (primaryLocationWeatherData.err || !primaryLocationWeatherData.data) {
             return this.setState({ error: primaryLocationWeatherData.err });
         } else {
             this.setState({
-                userPrimaryLocation: { id, city, lat, lon },
+                userPrimaryLocation: { id, city, latitude, longitude },
             });
         };
         return primaryLocationWeatherData.data;
@@ -163,7 +203,7 @@ class Home extends Component {
         if (this.state.userSecondaryLocations.length) {
             for (let i = 0; i < this.state.userSecondaryLocations.length; i++) {
                 const { id, city, latitude, longitude } = this.state.userSecondaryLocations[i];
-                secondaryLocationsWeatherData[i] = await this.getForecastData({ id, city, lat: latitude, lon: longitude });
+                secondaryLocationsWeatherData[i] = await this.getForecastData({ id, city, latitude, longitude });
                 if (secondaryLocationsWeatherData[i].err || !secondaryLocationsWeatherData[i].data) {
                     return this.setState({ error: secondaryLocationsWeatherData[i].err });
                 } else {
@@ -214,20 +254,20 @@ class Home extends Component {
     };
 
     // Return city name from given latitude and longitude.
-    getCityFromCoords = async(lat, lon) => {
+    getCityFromCoords = async(latitude, longitude) => {
         console.log('getCityFromCoords');
         let permissions = this.askForPermissions();
         if (permissions.err) {
-            return { err: permissions.err, data: `${lat}, ${lon}` };
+            return { err: permissions.err, data: `${latitude}, ${longitude}` };
         };
-        let city = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+        let city = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (!city[0].city) {
-            return { err: 'Unable to obtain city name.', data: `${lat}, ${lon}` }
+            return { err: 'Unable to obtain city name.', data: `${latitude}, ${longitude}` }
         };
         return { err: null, data: city[0].city };
     };
 
-    // Generate unique id for state.savedLocations.
+    // Generate unique id for location.
     generateId = () => {
         console.log('generateId');
         let firstPart = (Math.random() * 46656) | 0;
@@ -240,8 +280,12 @@ class Home extends Component {
     // Get forecast data from the server and save it to state.savedLocations.
     getForecastData = async(location) => {
         console.log('getForecastData');
-        const { id, city, lat, lon } = location;
-        let newLocation = await fetch(`http://10.0.0.5:5000/api/forecast?lat=${lat}&lon=${lon}&lang=pl`)
+        let savedLocation = this.isLocationInSavedLocations(location, true);
+        if (savedLocation) {
+            return { err: null, data: savedLocation };
+        };
+        const { id, city, latitude, longitude } = location;
+        let newLocation = await fetch(`http://10.0.0.5:5000/api/forecast?lat=${latitude}&lon=${longitude}&lang=pl`)
             .then(res => res.json())
             .then(res => {
                 if (res.status === 403) {
@@ -278,7 +322,7 @@ class Home extends Component {
         };
     };
 
-    // Retrieve and fetche all data necessary for proper weather forecast display (it is the core of this whole app).
+    // Retrieve and fetch all data necessary for proper weather forecast display (it is the core of this whole app).
     componentReload = async () => {
         console.log('componentReload');
         const { isLoading } = this.state;
