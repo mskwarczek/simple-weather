@@ -10,3 +10,4 @@ web-build/
 web-report/
 
 darksky_key.json
+google_places_key.json

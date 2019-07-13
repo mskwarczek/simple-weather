@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Button, Picker } from 'react-native';
+import { StyleSheet, View, Button, Picker, KeyboardAvoidingView } from 'react-native';
 
 import SearchInput from '../common/SearchInput';
 import { P, H1, H2 } from '../common/components';
@@ -16,7 +16,7 @@ class Settings extends Component {
     };
 
     updateState = (type, value, index) => {
-        switch(type) {
+        switch (type) {
             case 'geolocation': this.setState({ geolocation: value }); break;
             case 'userFallbackPrimaryLocation': this.setState({ userFallbackPrimaryLocation: value }); break;
             case 'userSecondaryLocations': this.setState({ userSecondaryLocations: Object.assign(this.state.userSecondaryLocations, { [index]: value }) }); break;
@@ -48,22 +48,23 @@ class Settings extends Component {
     render() {
         const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
         return (
-            <View style={styles.container}>
+            //TODO: Include DarkSky banner on top/bottom of the page
+            //TODO: Improve KeyboardAvoidingView behaviour
+            <KeyboardAvoidingView behavior='padding' style={styles.container}>
                 <View style={styles.box}>
                     <H1>Simple Weather</H1>
-                    <H2>Settings</H2>
                 </View>
                 <View style={styles.box}>
                     <P>Choose primary location:</P>
-                    <SearchInput 
+                    <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userFallbackPrimaryLocation'
                         index={null}
                         defaultValue={
                             this.state.userFallbackPrimaryLocation
-                            ? this.state.userFallbackPrimaryLocation.city
-                            : ''
+                                ? this.state.userFallbackPrimaryLocation.city
+                                : ''
                         }
                     />
                 </View>
@@ -71,7 +72,7 @@ class Settings extends Component {
                     <P>Enable geolocation for primary location:</P>
                     <Picker
                         selectedValue={this.state.geolocation}
-                        style={{height: 50, width: 100}}
+                        style={{ height: 50, width: 100 }}
                         onValueChange={(value) => this.updateState('geolocation', value)}>
                         <Picker.Item label='ON' value={true} />
                         <Picker.Item label='OFF' value={false} />
@@ -79,7 +80,7 @@ class Settings extends Component {
                 </View>
                 <View style={styles.box}>
                     <P>Choose secondary location 1:</P>
-                    <SearchInput 
+                    <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userSecondaryLocations'
@@ -92,7 +93,7 @@ class Settings extends Component {
                 </View>
                 <View style={styles.box}>
                     <P>Choose secondary location 2:</P>
-                    <SearchInput 
+                    <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userSecondaryLocations'
@@ -120,7 +121,8 @@ class Settings extends Component {
                         onPress={() => this.resetState()}
                     />
                 </View>
-            </View>
+                <View style={{height: 50}}></View>
+            </KeyboardAvoidingView>
         );
     };
 };
@@ -145,6 +147,20 @@ const styles = StyleSheet.create({ //TODO: add styles
         justifyContent: 'space-around',
         alignItems: 'center',
         width: '100%',
+    },
+    keyboard: {
+        flex: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+    },
+    keyboard: {
+        flex: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        backgroundColor: '#FFF',
+        zIndex: 5,
     },
 });
 
