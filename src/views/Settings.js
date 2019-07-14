@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Button, Picker, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, Button, Picker, KeyboardAvoidingView, TouchableHighlight, Linking } from 'react-native';
 
 import SearchInput from '../common/SearchInput';
-import { P, H1, H2 } from '../common/components';
+import { P, H1 } from '../common/components';
+
+//TODO: Improve KeyboardAvoidingView behaviour
 
 class Settings extends Component {
     state = {
@@ -48,8 +50,6 @@ class Settings extends Component {
     render() {
         const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
         return (
-            //TODO: Include DarkSky banner on top/bottom of the page
-            //TODO: Improve KeyboardAvoidingView behaviour
             <KeyboardAvoidingView behavior='padding' style={styles.container}>
                 <View style={styles.box}>
                     <H1>Simple Weather</H1>
@@ -121,7 +121,12 @@ class Settings extends Component {
                         onPress={() => this.resetState()}
                     />
                 </View>
-                <View style={{height: 50}}></View>
+                <View style={{height: 50}}>
+                    <TouchableHighlight
+                        onPress={() => Linking.openURL('https://darksky.net/poweredby/').catch((err) => console.error('An error occurred', err))}>
+                        <P>Powered by Dark Sky</P>
+                    </TouchableHighlight>
+                </View>
             </KeyboardAvoidingView>
         );
     };

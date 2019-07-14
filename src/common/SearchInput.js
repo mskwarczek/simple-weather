@@ -12,6 +12,9 @@ https://developers.google.com/places/web-service/policies
     You must notify users in your Privacy Policy that you are using the Google Maps API(s) and incorporate by reference the Google Privacy Policy.
 */
 
+//TODO: Fix bug: suggestions list doesn't close when user clicks outside of it.
+//TODO: Check and fix possible problems with leaving text input via back button or mid-writing (Possibly adding a button to confirm user's choise would fix most of such problems)
+
 class SearchInput extends Component {
     state = {
         input: null,

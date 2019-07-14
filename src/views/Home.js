@@ -214,6 +214,26 @@ class Home extends Component {
         return secondaryLocationsWeatherData;
     };
 
+    // Get data for searched location (from SearchBar) and show that location's details.
+    //TODO: Check and fix possible problems with saving locactions to savedLocations (e.g. saves before ending request by user, multiple saves of the same location)
+    getSearchBarLocationData = async (value) => {
+        let newLocation = await this.addIdAndCityToLocation(value);
+        newLocation = await this.getForecastData(newLocation);
+        if (newLocation.err) {
+            this.setState({
+                error: newLocation.err,
+            })
+        } else {
+            this.setState({
+                savedLocations: [...this.state.savedLocations, newLocation.data]
+            });
+            this.props.navigation.navigate('LocationDetails', { 
+                weather: newLocation.data,
+                assignIcon: this.assignIcon,
+            });
+        };
+    };
+
     // Ask for geolocation permissions. It is necessary for geocoding and reverse geocoding to work even if state.geolocation is set to false.
     askForPermissions = async() => {
         console.log('askForPermissions');
@@ -366,15 +386,7 @@ class Home extends Component {
         };
         return (
             <View style={styles.container}>
-                <SearchBar />
-                <PrimaryLocation 
-                    showDetails={() => this.props.navigation.navigate('LocationDetails', { 
-                        weather: savedLocations.filter(location => location.id === userPrimaryLocation.id)[0],
-                        assignIcon: this.assignIcon,
-                    })}
-                    weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
-                    assignIcon={this.assignIcon}
-                />
+                <Footer />
                 <View style={styles.secondaryLocationsContainer}>
                     {
                         userSecondaryLocations && userSecondaryLocations.map(location => {
@@ -390,7 +402,18 @@ class Home extends Component {
                         })
                     }
                 </View>
-                <Footer />
+                <PrimaryLocation 
+                    showDetails={() => this.props.navigation.navigate('LocationDetails', { 
+                        weather: savedLocations.filter(location => location.id === userPrimaryLocation.id)[0],
+                        assignIcon: this.assignIcon,
+                    })}
+                    weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
+                    assignIcon={this.assignIcon}
+                />
+                <SearchBar
+                    getCoordsFromCity={this.getCoordsFromCity}
+                    getSearchBarLocationData={this.getSearchBarLocationData}
+                />
             </View>
         );
     };
@@ -399,6 +422,7 @@ class Home extends Component {
 const styles = StyleSheet.create({ //TODO: add styles
     container: {
         flex: 1,
+        flexDirection: 'column-reverse',
     },
     secondaryLocationsContainer: {
         flex: 3,
