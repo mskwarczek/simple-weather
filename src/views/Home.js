@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, Button, AsyncStorage } from 'react-native';
+import { StyleSheet, View, Text, Button, AsyncStorage, AppState } from 'react-native';
 import * as Permissions from 'expo-permissions';
 import * as Location from 'expo-location';
 
@@ -11,6 +11,7 @@ import Footer from './home-components/Footer';
 class Home extends Component {
     state = {
         isLoading: true,
+        appState: AppState.currentState, // current app state (active or in background)
         geolocation: false, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
         secondaryLocationsDisplayed: 2,
         maxForecastLifetime: 3600, // in seconds
@@ -217,6 +218,7 @@ class Home extends Component {
     // Get data for searched location (from SearchBar) and show that location's details.
     //TODO: Check and fix possible problems with saving locactions to savedLocations (e.g. saves before ending request by user, multiple saves of the same location)
     getSearchBarLocationData = async (value) => {
+        console.log('getSearchBarLocationData');
         let newLocation = await this.addIdAndCityToLocation(value);
         newLocation = await this.getForecastData(newLocation);
         if (newLocation.err) {
@@ -342,6 +344,17 @@ class Home extends Component {
         };
     };
 
+    // Check if appState is chenging to active and if it does, reload all data.
+    handleAppStateChange = async (nextAppState) => {
+        console.log('handleAppStateChange');
+        if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
+            await this.componentReload();
+        };
+        this.setState({
+            appState: nextAppState,
+        });
+    };
+
     // Retrieve and fetch all data necessary for proper weather forecast display (it is the core of this whole app).
     componentReload = async () => {
         console.log('componentReload');
@@ -364,7 +377,11 @@ class Home extends Component {
 
     componentDidMount = async () => {
         await this.componentReload();
-        //TODO: Setup event listeners for AppState change
+        AppState.addEventListener('change', this.handleAppStateChange);
+    };
+
+    componentWillUnmount() {
+        AppState.removeEventListener('change', this.handleAppStateChange);
     };
 
     render() {
