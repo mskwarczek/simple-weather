@@ -14,7 +14,7 @@ class Footer extends Component {
 
 const styles = StyleSheet.create({ //TODO: add styles
     container: {
-        flex: 1,
+        flex: 2,
         width: '100%',
         backgroundColor: '#4CAF50',
     },

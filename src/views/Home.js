@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Button, AsyncStorage, AppState } from 'react-na
 import * as Permissions from 'expo-permissions';
 import * as Location from 'expo-location';
 
-import SearchBar from './home-components/SearchBar';
+import SearchInput from '../common/SearchInput';
 import PrimaryLocation from './home-components/PrimaryLocation';
 import SecondaryLocation from './home-components/SecondaryLocation';
 import Footer from './home-components/Footer';
@@ -12,6 +12,7 @@ class Home extends Component {
     state = {
         isLoading: true,
         appState: AppState.currentState, // current app state (active or in background)
+        areSuggestionsVisible: false,
         geolocation: false, // bool -- if set to true, userPrimaryLocation is gathered via geolocation
         secondaryLocationsDisplayed: 2,
         maxForecastLifetime: 3600, // in seconds
@@ -215,9 +216,9 @@ class Home extends Component {
         return secondaryLocationsWeatherData;
     };
 
-    // Get data for searched location (from SearchBar) and show that location's details.
+    // Get data for searched location and show that location's details.
     //TODO: Check and fix possible problems with saving locactions to savedLocations (e.g. saves before ending request by user, multiple saves of the same location)
-    getSearchBarLocationData = async (value) => {
+    getSearchInputLocationData = async (value) => {
         console.log('getSearchBarLocationData');
         let newLocation = await this.addIdAndCityToLocation(value);
         newLocation = await this.getForecastData(newLocation);
@@ -233,6 +234,18 @@ class Home extends Component {
                 weather: newLocation.data,
                 assignIcon: this.assignIcon,
             });
+        };
+    };
+
+    // Handle SearchInput actions (get weather data or show search suggestions list).
+    handleSearchInputState = async (value, type) => {
+        console.log('handleSearchInputState');
+        if (type === 'suggestions') {
+            this.setState({
+                areSuggestionsVisible: value,
+            });
+        } else {
+            this.getSearchInputLocationData(value);
         };
     };
 
@@ -386,7 +399,7 @@ class Home extends Component {
 
     render() {
         console.log('home render');
-        const { isLoading, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
+        const { isLoading, areSuggestionsVisible, error, savedLocations, userPrimaryLocation, userSecondaryLocations } = this.state;
         if (isLoading) {
             return (
                 <View style={styles.container}>
@@ -403,10 +416,23 @@ class Home extends Component {
         };
         return (
             <View style={styles.container}>
-                <Footer />
-                <View style={styles.secondaryLocationsContainer}>
-                    {
-                        userSecondaryLocations && userSecondaryLocations.map(location => {
+                <SearchInput
+                    searchFunction={this.getCoordsFromCity}
+                    updateState={this.handleSearchInputState}
+                    submitText='Search'
+                    type={null}
+                    index={null}
+                />
+                { !areSuggestionsVisible && <PrimaryLocation 
+                    showDetails={() => this.props.navigation.navigate('LocationDetails', { 
+                        weather: savedLocations.filter(location => location.id === userPrimaryLocation.id)[0],
+                        assignIcon: this.assignIcon,
+                    })}
+                    weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
+                    assignIcon={this.assignIcon}
+                /> }
+                { !areSuggestionsVisible && <View style={styles.secondaryLocationsContainer}>
+                    { userSecondaryLocations && userSecondaryLocations.map(location => {
                             return <SecondaryLocation
                                 key={location.id}
                                 showDetails={() => this.props.navigation.navigate('LocationDetails', {
@@ -416,21 +442,9 @@ class Home extends Component {
                                 weather={savedLocations.filter(loc => loc.id === location.id)[0]}
                                 assignIcon={this.assignIcon}
                             />
-                        })
-                    }
-                </View>
-                <PrimaryLocation 
-                    showDetails={() => this.props.navigation.navigate('LocationDetails', { 
-                        weather: savedLocations.filter(location => location.id === userPrimaryLocation.id)[0],
-                        assignIcon: this.assignIcon,
-                    })}
-                    weather={savedLocations.filter(location => location.id === userPrimaryLocation.id)[0]}
-                    assignIcon={this.assignIcon}
-                />
-                <SearchBar
-                    getCoordsFromCity={this.getCoordsFromCity}
-                    getSearchBarLocationData={this.getSearchBarLocationData}
-                />
+                        }) }
+                </View> }
+                { !areSuggestionsVisible && <Footer /> }
             </View>
         );
     };
@@ -439,10 +453,9 @@ class Home extends Component {
 const styles = StyleSheet.create({ //TODO: add styles
     container: {
         flex: 1,
-        flexDirection: 'column-reverse',
     },
     secondaryLocationsContainer: {
-        flex: 3,
+        flex: 6,
         flexDirection: 'row',
     },
 });

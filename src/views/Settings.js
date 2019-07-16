@@ -4,10 +4,10 @@ import { StyleSheet, View, Button, Picker, KeyboardAvoidingView, TouchableHighli
 import SearchInput from '../common/SearchInput';
 import { P, H1 } from '../common/components';
 
-//TODO: Improve KeyboardAvoidingView behaviour
-
 class Settings extends Component {
     state = {
+        areSuggestionsVisible: false,
+        activeSuggestions: null,
         geolocation: false,
         userFallbackPrimaryLocation: '',
         userSecondaryLocations: [],
@@ -17,11 +17,12 @@ class Settings extends Component {
         title: 'Settings',
     };
 
-    updateState = (type, value, index) => {
+    updateState = (value, type, index) => {
         switch (type) {
             case 'geolocation': this.setState({ geolocation: value }); break;
             case 'userFallbackPrimaryLocation': this.setState({ userFallbackPrimaryLocation: value }); break;
             case 'userSecondaryLocations': this.setState({ userSecondaryLocations: Object.assign(this.state.userSecondaryLocations, { [index]: value }) }); break;
+            case 'suggestions': this.setState({ areSuggestionsVisible: value, activeSuggestions: index })
             default: return;
         };
     };
@@ -34,6 +35,8 @@ class Settings extends Component {
             userSecondaryLocations: [],
         });
         this.setState({
+            areSuggestionsVisible: false,
+            activeSuggestions: null,
             geolocation: false,
             userFallbackPrimaryLocation: '',
             userSecondaryLocations: [],
@@ -44,31 +47,35 @@ class Settings extends Component {
         let userSettings = this.props.navigation.getParam('userSettings');
         this.setState({
             ...userSettings,
+            areSuggestionsVisible: false,
+            activeSuggestions: null,
         });
     };
 
     render() {
         const storeUserSettings = this.props.navigation.getParam('storeUserSettings');
+        const { areSuggestionsVisible, activeSuggestions } = this.state;
         return (
-            <KeyboardAvoidingView behavior='padding' style={styles.container}>
-                <View style={styles.box}>
+            <View style={styles.container}>
+                { !areSuggestionsVisible && <View style={styles.box}>
                     <H1>Simple Weather</H1>
-                </View>
-                <View style={styles.box}>
+                </View> }
+                { (!areSuggestionsVisible || (areSuggestionsVisible && activeSuggestions === 'primary')) && <View style={styles.box}>
                     <P>Choose primary location:</P>
                     <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userFallbackPrimaryLocation'
-                        index={null}
+                        index={'primary'}
+                        submitText='Set'
                         defaultValue={
                             this.state.userFallbackPrimaryLocation
                                 ? this.state.userFallbackPrimaryLocation.city
                                 : ''
                         }
                     />
-                </View>
-                <View style={styles.box}>
+                </View> }
+                { !areSuggestionsVisible && <View style={styles.geolocation}>
                     <P>Enable geolocation for primary location:</P>
                     <Picker
                         selectedValue={this.state.geolocation}
@@ -77,34 +84,36 @@ class Settings extends Component {
                         <Picker.Item label='ON' value={true} />
                         <Picker.Item label='OFF' value={false} />
                     </Picker>
-                </View>
-                <View style={styles.box}>
+                </View> }
+                { (!areSuggestionsVisible || (areSuggestionsVisible && activeSuggestions === 0)) && <View style={styles.box}>
                     <P>Choose secondary location 1:</P>
                     <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={0}
+                        submitText='Set'
                         defaultValue={this.state.userSecondaryLocations[0]
                             ? this.state.userSecondaryLocations[0].city
                             : ''
                         }
                     />
-                </View>
-                <View style={styles.box}>
+                </View> }
+                { (!areSuggestionsVisible || (areSuggestionsVisible && activeSuggestions === 1)) && <View style={styles.box}>
                     <P>Choose secondary location 2:</P>
                     <SearchInput
                         searchFunction={this.props.navigation.getParam('getCoords')}
                         updateState={this.updateState}
                         type='userSecondaryLocations'
                         index={1}
+                        submitText='Set'
                         defaultValue={this.state.userSecondaryLocations[1]
                             ? this.state.userSecondaryLocations[1].city
                             : ''
                         }
                     />
-                </View>
-                <View style={styles.row}>
+                </View> }
+                <View style={styles.buttons}>
                     <Button
                         title='Back'
                         color='#448AFF'
@@ -113,7 +122,11 @@ class Settings extends Component {
                     <Button
                         title='Save'
                         color='#448AFF'
-                        onPress={() => storeUserSettings(this.state)}
+                        onPress={() => storeUserSettings({
+                            geolocation: this.state.geolocation,
+                            userFallbackPrimaryLocation: this.state.userFallbackPrimaryLocation,
+                            userSecondaryLocations: this.state.userSecondaryLocations,
+                        })}
                     />
                     <Button
                         title='Reset'
@@ -127,7 +140,7 @@ class Settings extends Component {
                         <P>Powered by Dark Sky</P>
                     </TouchableHighlight>
                 </View>
-            </KeyboardAvoidingView>
+            </View>
         );
     };
 };
@@ -146,26 +159,23 @@ const styles = StyleSheet.create({ //TODO: add styles
         alignItems: 'center',
         width: '100%',
     },
-    row: {
+    buttons: {
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
         width: '100%',
+        maxHeight: 100,
+        borderBottomColor: '#BDBDBD',
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    keyboard: {
-        flex: 2,
+    geolocation: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-    },
-    keyboard: {
-        flex: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        backgroundColor: '#FFF',
-        zIndex: 5,
+        borderBottomColor: '#BDBDBD',
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
 });
 

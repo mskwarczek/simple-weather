@@ -38,7 +38,7 @@ class PrimaryLocation extends Component {
 
 const styles = StyleSheet.create({ //TODO: add styles
     wrapper: {
-        flex: 3,
+        flex: 6,
         width: '100%',
     },
     container: {
