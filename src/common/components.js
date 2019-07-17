@@ -65,24 +65,30 @@ export class H3 extends Component {
 export class Icon extends Component {
     render() {
         const { category, name, color } = this.props.icon;
+        const { size, style } = this.props;
         if (category === 'Feather') {
             return (
                 <Feather name={name}
-                    size={this.props.size}
-                    color={color} />
+                    size={size}
+                    color={color}
+                    style={style} />
             );
         } else if (category === 'Ionicons')
             return (
                 <Ionicons name={name}
-                    size={this.props.size}
-                    color={color} />
+                    size={size}
+                    color={color}
+                    style={style} />
             );
-        else {
+        else if (category === 'MaterialCommunityIcons') {
             return (
                 <MaterialCommunityIcons name={name}
-                    size={this.props.size}
-                    color={color} />
+                    size={size}
+                    color={color}
+                    style={style} />
             );
+        } else {
+            return <P>Icon</P>
         };
     };
 };
