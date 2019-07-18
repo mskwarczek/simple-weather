@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Button } from 'react-native';
 
-import { P, H1, H2, H3, Icon } from '../common/components';
+import { H1, H2, H3, Icon } from '../common/components';
 import WeatherDetails from './locationDetails-components/WeatherDetails';
 import WeatherSlider from './locationDetails-components/WeatherSlider';
-
-//TODO: Alerts (probably single line under current weather or modal for high severity)
+import AlertModal from './locationDetails-components/AlertModal';
 
 class LocationDetails extends Component {
     state = {
+        isModalVisible: false,
         hourlySliderValue: 0,
         dailySliderValue: 0,
     };
@@ -42,24 +42,43 @@ class LocationDetails extends Component {
         };
     };
 
+    showModal = (value) => {
+        value = value ? true : false;
+        this.setState({
+            isModalVisible: value,
+        });
+    };
+
     componentDidMount() {
+        let { city } = this.props.navigation.state.params.weather;
         this.props.navigation.setParams({
-            locationName: this.props.navigation.state.params.weather.city,
+            locationName: city,
         });
     };
 
     render() {
         const { currently, hourly, daily, alerts } = this.props.navigation.state.params.weather;
         const { assignIcon } = this.props.navigation.state.params;
-        const { hourlySliderValue, dailySliderValue } = this.state;
+        const { isModalVisible, hourlySliderValue, dailySliderValue } = this.state;
         const hourlySliderDate = this.calculateHourFromTimestamp(hourly.data[hourlySliderValue].time);
         const dailySliderDate = this.calculateHourFromTimestamp(daily.data[dailySliderValue].time);
         return (
             <View style={styles.container}>
+                {
+                    isModalVisible
+                        ? <AlertModal 
+                            alerts={alerts}
+                            showModal={this.showModal} />
+                        : null
+                }
                 <View style={styles.box}>
                     <View style={styles.row}>
                         <View style={styles.box}>
-                            <Icon icon={assignIcon(currently.icon)} size={72} />
+                            <Icon icon={assignIcon(currently.icon)} size={alerts ? 48 : 72} />
+                            { alerts && <Button 
+                                title='Alerts'
+                                onPress={() => this.showModal(true)}
+                            /> }
                         </View>
                         <View style={styles.boxL}>
                             <H1>{Math.floor(currently.temperature)}&deg;C, {currently.summary}</H1>

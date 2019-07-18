@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Button, Picker, KeyboardAvoidingView, TouchableHighlight, Linking } from 'react-native';
+import { StyleSheet, View, Button, Picker, TouchableHighlight, Linking } from 'react-native';
 
 import SearchInput from '../common/SearchInput';
 import { P, H1 } from '../common/components';
