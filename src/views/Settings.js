@@ -68,11 +68,10 @@ class Settings extends Component {
                         type='userFallbackPrimaryLocation'
                         index={'primary'}
                         submitText='Set'
-                        defaultValue={
+                        placeholder={
                             this.state.userFallbackPrimaryLocation
                                 ? this.state.userFallbackPrimaryLocation.city
-                                : ''
-                        }
+                                : '' }
                     />
                 </View> }
                 { !areSuggestionsVisible && <View style={styles.geolocation}>
@@ -93,10 +92,9 @@ class Settings extends Component {
                         type='userSecondaryLocations'
                         index={0}
                         submitText='Set'
-                        defaultValue={this.state.userSecondaryLocations[0]
+                        placeholder={this.state.userSecondaryLocations[0]
                             ? this.state.userSecondaryLocations[0].city
-                            : ''
-                        }
+                            : '' }
                     />
                 </View> }
                 { (!areSuggestionsVisible || (areSuggestionsVisible && activeSuggestions === 1)) && <View style={styles.box}>
@@ -107,10 +105,9 @@ class Settings extends Component {
                         type='userSecondaryLocations'
                         index={1}
                         submitText='Set'
-                        defaultValue={this.state.userSecondaryLocations[1]
+                        placeholder={this.state.userSecondaryLocations[1]
                             ? this.state.userSecondaryLocations[1].city
-                            : ''
-                        }
+                            : '' }
                     />
                 </View> }
                 <View style={styles.buttons}>

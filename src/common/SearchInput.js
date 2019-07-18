@@ -1,55 +1,46 @@
 import React, { Component } from 'react';
-import { StyleSheet, TextInput, View, Button, TouchableHighlight, ScrollView } from 'react-native';
+import { StyleSheet, TextInput, View, Button, TouchableHighlight, Keyboard, Image } from 'react-native';
 import uuid from 'uuid/v4';
 
 import { P } from './components';
 import GOOGLE_PLACES_KEY from '../../server/google_places_key.json';
 
-/* TODO:
-https://developers.google.com/places/web-service/policies
-    Your Terms of Use and Privacy Policy must be publicly available.
-    You must explicitly state in your application's Terms of Use that by using your application, users are bound by Google’s Terms of Service.
-    You must notify users in your Privacy Policy that you are using the Google Maps API(s) and incorporate by reference the Google Privacy Policy.
-*/
-
-//TODO: Fix bug: suggestions list doesn't close when user clicks outside of it.
-
 class SearchInput extends Component {
     state = {
         input: null,
         suggestionsTable: [],
-        showSuggestions: false,
         sessionToken: null,
-        placeId: null,
         error: '',
     };
 
     generateSessionToken = () => {
         this.setState({
+            input: null,
             sessionToken: uuid(),
-            suggestionsTable: [],
             error: '',
         });
         this.props.updateState(true, 'suggestions', this.props.index);
     };
 
-    handleTextChange = async (input) => {
-        const { sessionToken } = this.state;
-        this.setState({
-            input: input,
-        });
-        if (!input || !input.length) {
-            return this.exitInput(null);
+    handleTextChange = async (newInput) => {
+        const { sessionToken, input } = this.state;
+        if (!input && newInput) {
+            this.props.updateState(true, 'suggestions', this.props.index);
         };
-        let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${GOOGLE_PLACES_KEY}&language=pl&types=(cities)&sessiontoken=${sessionToken}&input=${input}`;
+        if (!newInput) {
+            return this.exitInput();
+        } else {
+            this.setState({
+                input: newInput,
+            });
+        };
+        let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${GOOGLE_PLACES_KEY}&language=pl&types=(cities)&sessiontoken=${sessionToken}&input=${newInput}`;
         try {
             let result = await fetch(url);
             result = await result.json();
             if (result.status === 'OK') {
                 this.setState({
-                    showSuggestions: true,
                     suggestionsTable: result.predictions,
-                    placeId: result.predictions[0].place_id,
                     error: '',
                 });
             } else if (result.status !== 'INVALID_REQUEST') {
@@ -64,51 +55,44 @@ class SearchInput extends Component {
         };
     };
 
-    getPlaceId = (placeId, input) => {
+    exitInput = (error, name) => {
+        const errorMessage = error ? error : '';
+        const newInput = name ? name : null;
         this.setState({
-            input,
-            placeId,
+            input: newInput,
+            suggestionsTable: [],
+            error: errorMessage,
         });
-    };
-
-    exitInput = (inputValue) => {
-        const { suggestionsTable } = this.state;
-        if (inputValue && inputValue.length && suggestionsTable && suggestionsTable.length) {
-            this.setState({
-                showSuggestions: false,
-                input: suggestionsTable[0].description,
-                placeId: suggestionsTable[0].place_id,
-                error: '',
-            });
-        } else {
-            this.setState({
-                showSuggestions: false,
-                error: '',
-            });
-        };
         this.props.updateState(false, 'suggestions', null);
+        Keyboard.dismiss();
     };
 
     fallbackForNoResults = async() => {
-        if (!this.state.input) {
-            return;
-        };
         const result = await this.props.searchFunction(this.state.input);
         if (result.err || !result.data) {
-            this.setState({ error: result.err });
+            return this.exitInput(result.err);
         } else {
             this.props.updateState({
                 latitude: result.data[0].latitude,
                 longitude: result.data[0].longitude,
             }, this.props.type, this.props.index);
         };
-        this.exitInput(this.state.input);
+        this.exitInput(null, this.state.input);
     };
 
-    handleSubmit = async () => {
-        const { placeId, sessionToken } = this.state;
-        if (!placeId) {
+    handleSubmit = async (id, name) => {
+        const { suggestionsTable, input, sessionToken } = this.state;
+        let placeId, placeName;
+        if (id && name) {
+            placeId = id;
+            placeName = name;
+        } else if (suggestionsTable.length && input) {
+            placeId = suggestionsTable[0].place_id;
+            placeName = suggestionsTable[0].description;
+        } else if (input) {
             return this.fallbackForNoResults();
+        } else {
+            return this.exitInput();
         };
         let url = `https://maps.googleapis.com/maps/api/place/details/json?key=${GOOGLE_PLACES_KEY}&language=pl&sessiontoken=${sessionToken}&fields=geometry&placeid=${placeId}`;
         try {
@@ -119,21 +103,17 @@ class SearchInput extends Component {
                     latitude: data.result.geometry.location.lat,
                     longitude: data.result.geometry.location.lng,
                 }, this.props.type, this.props.index);
-                this.exitInput(this.state.input);
+                return this.exitInput(null, placeName);
             } else {
-                this.setState({
-                    error: result.status,
-                });
+                this.exitInput(error);
             };
         } catch (error) {
-            this.setState({
-                error,
-            });
+            this.exitInput(error);
         };
     };
 
     render() {
-        const { error, input, showSuggestions, suggestionsTable } = this.state;
+        const { error, input, suggestionsTable } = this.state;
         return (
             <View style={styles.container}>
                 <View style={styles.row}>
@@ -142,9 +122,10 @@ class SearchInput extends Component {
                         multiline={false}
                         onChangeText={(input) => this.handleTextChange(input)}
                         onFocus={() => this.generateSessionToken()}
-                        onEndEditing={() => this.exitInput(input)}
+                        onSubmitEditing={()=> this.handleSubmit()}
                         value={input}
-                        defaultValue={this.props.defaultValue}
+                        placeholder={this.props.placeholder}
+                        placeholderTextColor='#BDBDBD'
                     />
                     <Button 
                         title={this.props.submitText}
@@ -152,22 +133,25 @@ class SearchInput extends Component {
                         color='#448AFF'
                     />
                 </View>
-                { showSuggestions && suggestionsTable.length && <ScrollView style={styles.suggestionsTable}>
+                { (suggestionsTable.length > 0) && <View style={styles.suggestionsTable}>
                     { suggestionsTable.map(location => {
                         return (
                             <TouchableHighlight
                                 style={styles.suggestionsTable__element}
                                 key={location.id}
-                                onPress={() => this.getPlaceId(location.place_id, location.description)}>
+                                onPress={() => this.handleSubmit(location.place_id, location.description)}>
                                 <P>{location.description}</P>
                             </TouchableHighlight>
                         );
                     }) }
-                </ScrollView>}
+                    <Image
+                        style={styles.googleLogo}
+                        source={require('../../assets/powered_by_google.png')}
+                    />
+                </View> }
                 { error && error.length
                     ? <P>{error}</P>
-                    : null
-                }
+                    : null }
             </View>
         );
     };
@@ -202,6 +186,12 @@ const styles = StyleSheet.create({ //TODO: add styles
         backgroundColor: '#FFF',
         borderBottomColor: '#BDBDBD',
         borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    googleLogo: {
+        resizeMode: 'contain',
+        marginTop: 5,
+        height: 15,
+        alignSelf: 'flex-end'
     },
 });
 
