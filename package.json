@@ -11,7 +11,7 @@
         "expo": "^33.0.0",
         "expo-location": "^5.0.1",
         "expo-permissions": "^5.0.1",
-        "express": "^4.17.1",
+        "express": "^4.18.2",
         "node-fetch": "^2.6.0",
         "react": "16.8.3",
         "react-dom": "^16.8.6",
